@@ -1,200 +1,202 @@
 #include <iostream>
 using namespace std;
 struct NODE{
-	int key;
-	NODE* left;
-	NODE* right;
-	int height;
+    int key;
+    int height;
+    NODE* left;
+    NODE* right;
 };
 
 NODE* createNode(int data){
-	NODE* p = new NODE;
-	p->left = p->right = nullptr;
-	p->key = data;
-	p->height = 1;
-	return p;
+    NODE* node = new NODE;
+    node->key = data;
+    node->left = node->right = NULL;
+    node->height = 1;
+    return node;
 }
 
 int height(NODE* pRoot){
-	if (!pRoot) return 0;
-	return pRoot->height;
+    if (!pRoot) return 0;
+    return pRoot->height;
 }
 
 int getBalance(NODE* pRoot){
-	if (!pRoot) return 0;
-	return height(pRoot->left) - height(pRoot->right);
-}
-
-void rightRotate(NODE* &pRoot){
-	NODE* y = pRoot->left; //left child of pRoot
-	NODE* T3 = y->right; //right child of the left child of pRoot
-	
-	y->right = pRoot;
-	pRoot->left = T3;
-	
-	pRoot->height = 1 + max(height(pRoot->left), height(pRoot->right));
-	y->height = 1 + max(height(y->left), height(y->right));
-	
-	pRoot = y;
+    if (!pRoot) return 0;
+    return height(pRoot->left) - height(pRoot->right);
 }
 
 void leftRotate(NODE* &pRoot){
-	NODE* y = pRoot->right; //right child of pRoot
-	NODE* T3 = y->left; //right child of the left child of pRoot
-	y->left = pRoot;
-	pRoot->right = T3;
-	
-	pRoot->height = 1 + max(height(pRoot->left), height(pRoot->right));
-	y->height = 1 + max(height(y->left), height(y->right));
-	
-	pRoot = y;
+    NODE* y = pRoot->right;
+    NODE* sub = y->left;
+
+    y->left = pRoot;
+    pRoot->right = sub;
+
+    pRoot->height = 1 + max(height(pRoot->left), height(pRoot->right));
+    y->height = 1 + max(height(y->left), height(y->right));
+
+    pRoot = y;
 }
 
-void insert(NODE* &pRoot, int x){
-	// BST insertion 
-	if (!pRoot) {
-		pRoot = createNode(x);
-		return;
-	}
-	
-	if (x < pRoot->key){
-		insert(pRoot->left, x);
-	}else if (x > pRoot->key){
-		insert(pRoot->right, x);
-	}else{
-		// x has already been in the tree
-		return;
-	}
-	
-	pRoot->height = 1 + max(height(pRoot->left), height(pRoot->right));
-	int balance = getBalance(pRoot);
-	if (balance > 1){
-		// left left case
-		if (x < pRoot->left->key) rightRotate(pRoot);
-		else {
-			// left right case
-			leftRotate(pRoot->left);
-			rightRotate(pRoot);
-		}
-	}
-	
-	if (balance < -1){
-		// right right case
-		if (x > pRoot->right->key) {
-			leftRotate(pRoot);
-		}
-		else {
-			// right left case
-			rightRotate(pRoot->right);
-			leftRotate(pRoot);
-		}
-	}
-		
+void rightRotate(NODE* &pRoot){
+    NODE* y = pRoot->left;
+    NODE* sub = y->right;
+
+    y->right = pRoot;
+    pRoot->left = sub;
+
+    pRoot->height = 1 + max(height(pRoot->left), height(pRoot->right));
+    y->height = 1 + max(height(y->left), height(y->right));
+
+    pRoot = y;
 }
 
-NODE* getInorderSuccessor(NODE* pRoot){
-	NODE* cur = pRoot;
-	while (cur->left) cur = cur->left;
-	return cur;
+void Insert(NODE* &pRoot, int x){
+    if (!pRoot) {
+        pRoot = createNode(x);
+        return;
+    }
+    if (x > pRoot->key) Insert(pRoot->right, x);
+    else if (x < pRoot->key) Insert(pRoot->left, x);
+    else return;
+
+    pRoot->height = 1 + max(height(pRoot->left), height(pRoot->right));
+
+    int balance = getBalance(pRoot);
+
+    if (balance > 1){
+        if (getBalance(pRoot->left) >= 0){
+            rightRotate(pRoot);
+        }
+        else{
+            leftRotate(pRoot->left);
+            rightRotate(pRoot);
+        }
+    }
+
+    if (balance < -1){
+        if (getBalance(pRoot->right) <= 0){
+            leftRotate(pRoot);
+        }
+        else{
+            rightRotate(pRoot->right);
+            leftRotate(pRoot);
+        }
+    }
 }
 
-void remove(NODE* &pRoot, int x){
-	// bst remove
-	if (!pRoot) return;
-	if (x > pRoot->key) remove(pRoot->right, x);
-	else if (x < pRoot->key) remove(pRoot->left, x);
-	else {
-		// case 1: node is a leaf
-		if (!pRoot->left && !pRoot->right){
-			delete pRoot;
-			pRoot = nullptr;
-		}else{
-			// case 2: node has 1 child
-			if ((pRoot->left && !pRoot->right)|| (!pRoot->left && pRoot->right)){
-				if (pRoot->left){
-					pRoot->key = pRoot->left->key;
-					delete pRoot->left;
-					pRoot->left = nullptr;
-				}else{
-					pRoot->key = pRoot->right->key;
-					delete pRoot->right;
-					pRoot->right = nullptr;
-				}
-			}else{
-			// case 3: node has 2 children
-				//find the minimun node in the right subtree or find the maximum node in the left subtree
-				NODE* tmp = getInorderSuccessor(pRoot->right);
-				pRoot->key = tmp->key;
-				remove(pRoot->right, tmp->key);
-			}
-		}
-	}
-	
-	if (!pRoot) return;
-	
-	// update height for current node
-	pRoot->height = 1 + max(height(pRoot->left), height(pRoot->right));
-	
-	int balance = getBalance(pRoot);
-	
-	if (balance > 1){
-		// left left case
-		if (getBalance(pRoot->left) >= 0) rightRotate(pRoot);
-		else {
-			// left right case
-			leftRotate(pRoot->left);
-			rightRotate(pRoot);
-		}
-	}
-	else if (balance < -1){
-		// right right case
-		if (getBalance(pRoot->right) <= 0) {
-			leftRotate(pRoot);
-		}
-		else {
-			// right left case
-			rightRotate(pRoot->right);
-			leftRotate(pRoot);
-		}
-	}
+//void Remove(NODE* pRoot, int x){
+//    if (pRoot->key < x){
+//
+//    }
+//}
+
+
+void Inorder(NODE* pRoot){
+    if (!pRoot) return;
+    Inorder(pRoot->left);
+    cout << pRoot->key << ' ' ;
+    Inorder(pRoot->right);
 }
 
-bool isAVL(NODE* pRoot){
-	if (!pRoot) return true;
-	
-	if (abs(getBalance(pRoot)) <= 1 && isAVL(pRoot->left) && isAVL(pRoot->right)) return true;
-	return false;
+void postOrder(NODE* pRoot){
+    if (!pRoot) return;
+    postOrder(pRoot->left);
+    postOrder(pRoot->right);
+    cout << pRoot->key << ' ';
 }
 
-void inorder_traverse(NODE* pRoot){
-	if (!pRoot) return;
-	inorder_traverse(pRoot->left);
-	cout << pRoot->key << ' ';
-	inorder_traverse(pRoot->right);
+NODE* getInSuc(NODE* pRoot){
+    NODE* cur = pRoot;
+    while (cur->left){
+        cur = cur->left;
+    }
+    return cur;
 }
 
-void preorder_traverse(NODE* pRoot){
-	if (!pRoot) return;
-	cout << pRoot->key << ' ';
-	preorder_traverse(pRoot->left);
-	preorder_traverse(pRoot->right);
+void Remove(NODE* &pRoot, int x){
+    cout << pRoot->key << endl;
+    if (!pRoot) return;
+    if (pRoot->key > x){
+        Remove(pRoot->left, x);
+    }else if (pRoot->key < x){
+        Remove(pRoot->right, x);
+    }else{
+            if (!pRoot->left || !pRoot->right){
+                if (!pRoot->left && !pRoot->right){
+                    delete pRoot;
+                    pRoot = NULL;
+                }
+                else{
+                    if (!pRoot->left){
+                        NODE* tmp = pRoot;
+                        pRoot = pRoot->right;
+                        delete tmp;
+                    }
+                    if (!pRoot->right){
+                        NODE* tmp = pRoot;
+                        pRoot = pRoot->left;
+                        delete tmp;
+                    }
+                }
+        }else{
+            NODE* p = getInSuc(pRoot->right);
+            pRoot->key = p->key;
+            Remove(pRoot->right, p->key);
+        }
+    }
+
+    if (!pRoot) return;
+
+    pRoot->height = 1 + max(height(pRoot->left), height(pRoot->right));
+
+    int balance = getBalance(pRoot);
+
+    if (balance > 1){
+
+        if (getBalance(pRoot->left) >= 0){
+            rightRotate(pRoot);
+        }
+        else{
+            leftRotate(pRoot->left);
+            rightRotate(pRoot);
+        }
+    }
+
+    if (balance < -1){
+
+        if (getBalance(pRoot->right) <= 0){
+
+            leftRotate(pRoot);
+        }
+        else{
+            rightRotate(pRoot->right);
+            leftRotate(pRoot);
+        }
+    }
+
+
+
 }
 
 int main(){
-	NODE* pRoot = nullptr;
-	insert(pRoot, 1);
-	insert(pRoot, 2);
-	insert(pRoot, 3);
-	insert(pRoot, 4);
-	insert(pRoot, 5);
-	insert(pRoot, 6);
-	preorder_traverse(pRoot);
-	cout << endl;
-	remove(pRoot, 4);
-	preorder_traverse(pRoot);
-	cout << endl;
-	remove(pRoot, 5);
-	preorder_traverse(pRoot);
-	cout << endl;
-	cout << isAVL(pRoot);
+    NODE* pRoot = NULL;
+    Insert(pRoot, 1);
+    Insert(pRoot, 4);
+    Insert(pRoot, 2);
+    Insert(pRoot, 6);
+    Insert(pRoot, 3);
+//    Insert(pRoot, 4);
+//    Insert(pRoot, 5);
+    Inorder(pRoot);
+    cout << endl;
+    postOrder(pRoot);
+    cout << endl;
+    Remove(pRoot,1);
+    Remove(pRoot,6);
+    cout << endl;
+    Inorder(pRoot);
+    cout << endl;
+    postOrder(pRoot);
 }
+
